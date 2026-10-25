@@ -36,9 +36,7 @@ jobs:
 
       - name: Package
         shell: bash
-        run: |
-          powershell -NoProfile -Command "Compress-Archive -Path 'bin/Win32/*' -DestinationPath 'CLaunch-Plugins-Win32.zip' -Force"
-          powershell -NoProfile -Command "Compress-Archive -Path 'bin/x64/*' -DestinationPath 'CLaunch-Plugins-x64.zip' -Force"
+        run: bash .github/scripts/package.sh
 
       - name: Update nightly release
         env:
@@ -94,8 +92,7 @@ jobs:
 
           # ---- 不存在 → 新建 ----
           if [ "$have" = 0 ]; then
-            gh release create nightly \
-              "CLaunch-Plugins-Win32.zip" "CLaunch-Plugins-x64.zip" \
+            gh release create nightly dist/*.zip \
               -R "$repo" \
               --target "$GITHUB_SHA" \
               --prerelease \
@@ -115,9 +112,21 @@ jobs:
           # ---- 有新提交 → 就地更新 ----
           # tag 还停在旧提交，先移到 HEAD，Release 的源码快照和对比链接才正确
           git push -f origin "$GITHUB_SHA:refs/tags/nightly"
-          gh release upload nightly \
-            "CLaunch-Plugins-Win32.zip" "CLaunch-Plugins-x64.zip" \
-            -R "$repo" --clobber
+          gh release upload nightly dist/*.zip -R "$repo" --clobber
+
+          # 压缩包以版本号命名：某插件版本变了文件名就变，删掉已不在本次构建的旧附件
+          names=$(gh release view nightly -R "$repo" --json assets --jq '.assets[].name')
+          for name in $names; do
+            keep=0
+            for f in dist/*.zip; do
+              if [ "$(basename "$f")" = "$name" ]; then keep=1; fi
+            done
+            if [ "$keep" = 0 ]; then
+              echo "prune stale asset: $name"
+              gh release delete-asset nightly "$name" -R "$repo" --yes
+            fi
+          done
+
           gh release edit nightly -R "$repo" \
             --title "Nightly Build" \
             --notes-file notes.md

@@ -10,6 +10,11 @@ CLaunch 插件集合仓库：每个插件一个独立子目录，互不依赖、
 | Auto-close Unfocused Dialogs | [AutoCloseDialog/](AutoCloseDialog/) | 对话框（项目属性等）失去焦点时自动关闭，避免残留后台卡住 CLaunch 无法召唤 |
 | App Hotkeys | [AppHotkeys/](AppHotkeys/) | CLaunch 窗口显示期间按自定义热键直接启动对应程序（最多 8 条映射，设置页配置），无需切换到程序所在分类 |
 
+## 支持
+赞助或支持该项目👇  
+https://docs.qq.com/aio/DRWtMY3FQS0ZHRGRG
+
+
 ## 通用约定
 
 - 插件基于官方插件开发包（CLaunch Plugin SDK：单一导出函数 `ClPluginEventHandler` + CPI 函数表）开发
@@ -30,5 +35,6 @@ CLaunch 插件集合仓库：每个插件一个独立子目录，互不依赖、
 - `build`：每次推送编译全部插件，产物保留在 Actions artifact
 - `nightly`：每天北京时间 0 点检查，有新提交就把最新构建发布到固定 tag `nightly` 的预发布上（无新提交则跳过）
 - `auto-release`：15 天无推送自动发布正式 Release（tag = vYYYY.MM.DD）
+- 附件：一个插件一个压缩包，以该插件版本号命名（如 `AppHotkeys-2026.10.25.zip`），内含 Win32 与 x64 两个 DLL，按 CLaunch 位数取用；nightly 附带全部插件，正式 Release 只附带本次有更新的插件（未更新的不提供附件，说明中明确标注）
 - Release 说明由 `.github/scripts/plugin-notes.sh` 生成，逐插件列出：本次更新了哪些、哪些没更新（版本号 = 各插件最近更新日期，与 DLL 属性一致），时间均为北京时间
 

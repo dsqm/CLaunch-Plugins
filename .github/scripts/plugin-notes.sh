@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Generate the per-plugin update-status section of the release notes.
 #
-# Usage: plugin-notes.sh <base-ref>
+# Usage: plugin-notes.sh <base-ref> [release]
 #   <base-ref>  git ref to compare against (normally the latest stable
 #               release tag); pass ROOT to compare against the first commit.
+#   release     optional flag for the stable auto-release: adds per-plugin
+#               attachment names and states that unupdated plugins ship
+#               without an attachment this time (nightly attaches all).
 #
 # Emits Markdown on stdout:
 #   - one table row per plugin: its version and whether it changed since
@@ -19,7 +22,8 @@
 set -euo pipefail
 
 repo="${GITHUB_REPOSITORY:-dsqm/CLaunch-Plugins}"
-base=${1:?usage: plugin-notes.sh <base-ref>}
+base=${1:?usage: plugin-notes.sh <base-ref> [release]}
+mode=${2:-}
 if [ "$base" = "ROOT" ]; then
   base=$(git rev-list --max-parents=0 HEAD)
 fi
@@ -60,10 +64,20 @@ for p in $plugins; do
   printf '| %s | %s | %s |\n' "$p" "$ver" "$status"
 done
 
+if [ -n "$mode" ]; then
+  echo ""
+  echo "未更新的插件本次不提供附件：沿用已安装的版本即可，也可到历史 Release 下载其压缩包。"
+fi
+
 for p in $updated; do
   echo ""
   echo "#### $p 更新内容"
   echo ""
+  if [ -n "$mode" ]; then
+    ver=$(version_of "$p")
+    echo "附件：\`$p-$ver.zip\`（内含 Win32 与 x64 两个 DLL，按 CLaunch 位数取用）"
+    echo ""
+  fi
   git log --oneline -10 "$base..HEAD" -- "$p" | while read -r line; do
     s=${line%% *}; m=${line#* }
     echo "- [\`$s\`](https://github.com/$repo/commit/$s) $m"

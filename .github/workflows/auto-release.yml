@@ -62,13 +62,6 @@ jobs:
         shell: cmd
         run: call build.bat
 
-      - name: Package
-        if: steps.decide.outputs.go == 'true'
-        shell: bash
-        run: |
-          powershell -NoProfile -Command "Compress-Archive -Path 'bin/Win32/*' -DestinationPath 'CLaunch-Plugins-Win32.zip' -Force"
-          powershell -NoProfile -Command "Compress-Archive -Path 'bin/x64/*' -DestinationPath 'CLaunch-Plugins-x64.zip' -Force"
-
       - name: Create release
         if: steps.decide.outputs.go == 'true'
         env:
@@ -87,16 +80,36 @@ jobs:
           base=$(echo "$resp" | jq -r '.tag_name // empty' 2>/dev/null || true)
           [ -z "$base" ] && base=ROOT
 
+          # 本次有更新的插件（按插件目录判断）；正式 Release 只附这些插件的压缩包
+          plugins=$(for d in */; do
+            p=${d%/}
+            if [ -f "$p/$p.def" ]; then echo "$p"; fi
+          done)
+          updated=""
+          for p in $plugins; do
+            ts=$(git log -1 --format=%ct "$base..HEAD" -- "$p" || true)
+            if [ -n "$ts" ]; then updated="$updated $p"; fi
+          done
+
           {
             echo "自动发布：距上次推送已超过 15 天。发布日期：$ver"
             echo ""
             echo "全部代码：[\`v$ver\`](https://github.com/$repo/tree/$tag)"
             echo ""
-            bash .github/scripts/plugin-notes.sh "$base"
+            bash .github/scripts/plugin-notes.sh "$base" release
           } > notes.md
 
-          gh release create "$tag" \
-            "CLaunch-Plugins-Win32.zip" "CLaunch-Plugins-x64.zip" \
+          # 静默期内没动过任何插件（只改了 CI/文档）→ 发布不带附件
+          if [ -z "$updated" ]; then
+            echo "no plugin updated since $base -> release without attachments"
+            gh release create "$tag" -R "$repo" \
+              --title "CLaunch Plugins v$ver" \
+              --notes-file notes.md
+            exit 0
+          fi
+
+          bash .github/scripts/package.sh $updated
+          gh release create "$tag" dist/*.zip \
             -R "$repo" \
             --title "CLaunch Plugins v$ver" \
             --notes-file notes.md
