@@ -26,18 +26,22 @@
 #define PLUGIN_TITLE		_T("Auto-close Unfocused Dialogs")
 
 //------------------------------------------------------------------------------
-// Title keywords of the windows that must NOT be closed
-// (the CLaunch options dialog and its sub-dialogs; matched case-insensitively)
+// Title keywords of the windows that must NOT be closed, nor the dialogs they
+// own (the CLaunch options dialog, the icon settings dialog, ...; matched
+// case-insensitively)
 //------------------------------------------------------------------------------
 static const LPCTSTR s_pszKeepTitles[] = {
-	_T("选项"),															// zh-CN
-	_T("選項"),															// zh-TW
-	_T("オプション"),													// ja
-	_T("Options"),														// en
-	_T("Opzioni"),														// it
-	_T("Opciones"),														// es
-	_T("옵션"),															// ko
-	_T("設定"),															// ja sub-dialogs
+	_T("选项"),															// zh-CN options
+	_T("選項"),															// zh-TW options
+	_T("オプション"),													// ja options
+	_T("Options"),														// en options
+	_T("Opzioni"),														// it options
+	_T("Opciones"),														// es options
+	_T("옵션"),															// ko options
+	_T("設定"),															// ja options & sub-dialogs (incl. icon settings)
+	_T("图标设置"),														// zh-CN icon settings
+	_T("圖示"),															// zh-TW icon settings
+	_T("Icon"),															// en icon settings
 };
 
 //------------------------------------------------------------------------------
@@ -49,7 +53,7 @@ HWINEVENTHOOK	g_hWinEventHook	= NULL;									// Foreground-change event hook
 // Diagnostic log (written next to the DLL as AutoCloseDialog.log)
 // * Off by default. Set ACD_DEBUG_LOG to 1 to enable it while debugging.
 //------------------------------------------------------------------------------
-#define ACD_DEBUG_LOG	0
+#define ACD_DEBUG_LOG	1
 
 #if ACD_DEBUG_LOG
 void ClDebugLog(LPCTSTR pszText)
@@ -96,15 +100,14 @@ void ClDebugLog(LPCTSTR pszText)
 #endif
 
 //==============================================================================
-// Description : Check whether the window must be kept open
-//			   : (its title contains an options-dialog keyword)
+// Description : Check whether one window's title matches a keep keyword
 //			   :
 // Parameters  : hWnd  Window handle
 //			   :
-// Return	   : TRUE : Keep the window open
-//			   : FALSE: Close it
+// Return	   : TRUE : Matched
+//			   : FALSE: Not matched
 //==============================================================================
-static BOOL ClIsOptionsDialog(HWND hWnd)
+static BOOL ClTitleMatchesKeep(HWND hWnd)
 {
 	TCHAR szTitle[160];
 	if (GetWindowText(hWnd, szTitle, ARRAYSIZE(szTitle)) <= 0) {
@@ -114,6 +117,31 @@ static BOOL ClIsOptionsDialog(HWND hWnd)
 		if (StrStrI(szTitle, s_pszKeepTitles[i])) {
 			return TRUE;
 		}
+	}
+	return FALSE;
+}
+
+//==============================================================================
+// Description : Check whether the window must be kept open
+//			   : - TRUE when the window itself or one of its owner windows
+//			   :   (up to the main window) matches a keep keyword; dialogs
+//			   :   spawned by a kept window (e.g. the file picker opened from
+//			   :   the icon settings dialog) are kept open as well
+//			   :
+// Parameters  : hWnd  Window handle
+//			   :
+// Return	   : TRUE : Keep the window open
+//			   : FALSE: Close it
+//==============================================================================
+static BOOL ClKeepDialog(HWND hWnd)
+{
+	HWND h = hWnd;
+	HWND hwMain = CpiGetHandle();
+	while (h && h != hwMain) {
+		if (ClTitleMatchesKeep(h)) {
+			return TRUE;
+		}
+		h = GetWindow(h, GW_OWNER);											// Walk up the owner chain
 	}
 	return FALSE;
 }
@@ -142,8 +170,17 @@ static BOOL CALLBACK ClCloseDialogEnumProc(HWND hWnd, LPARAM lParam)
 			lstrcmp(szClass, _T("#32770")) != 0) {
 		return TRUE;														// Not a dialog box
 	}
-	if (ClIsOptionsDialog(hWnd)) {
-		return TRUE;														// Options dialog: keep it open
+	if (ClKeepDialog(hWnd)) {
+#if ACD_DEBUG_LOG
+		{
+			TCHAR szTitle[160], szMsg[320];
+			GetWindowText(hWnd, szTitle, ARRAYSIZE(szTitle));
+			StringCchPrintf(szMsg, ARRAYSIZE(szMsg),
+									_T("keep dialog: \"%s\" (class %s)"), szTitle, szClass);
+			ClDebugLog(szMsg);
+		}
+#endif
+		return TRUE;														// Options / icon settings: keep it open
 	}
 #if ACD_DEBUG_LOG
 	{
