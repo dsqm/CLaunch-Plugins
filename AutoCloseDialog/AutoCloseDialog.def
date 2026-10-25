@@ -1,0 +1,4 @@
+LIBRARY AutoCloseDialog
+
+EXPORTS
+	ClPluginEventHandler		@1

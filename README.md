@@ -7,6 +7,7 @@ CLaunch 插件集合仓库：每个插件一个独立子目录，互不依赖、
 | 插件 | 目录 | 说明 |
 | --- | --- | --- |
 | XButton1 Toggle | [X1Toggle/](X1Toggle/) | 鼠标侧键 X1 关闭已显示的 CLaunch 窗口，与 CLaunch 自身的"X1 显示"动作配合成完整的显示/隐藏切换 |
+| Auto-close Unfocused Dialogs | [AutoCloseDialog/](AutoCloseDialog/) | 对话框（项目属性等）失去焦点时自动关闭，避免残留后台卡住 CLaunch 无法召唤 |
 
 ## 通用约定
 

@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Win32" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="AutoCloseDialog.vcxproj" Id="c7a31f5b-8e24-4d69-9c0f-a2b6d8e45f17" />
+</Solution>
