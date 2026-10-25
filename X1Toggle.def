@@ -1,0 +1,7 @@
+LIBRARY X1Toggle
+
+;SECTIONS
+;	.GLOBALS READ WRITE SHARED
+
+EXPORTS
+	ClPluginEventHandler		@1

@@ -1,0 +1,14 @@
+# Build output
+x64/
+Win32/
+
+# Test build artifacts
+test/*.exe
+test/*.obj
+
+# Visual Studio user files
+.vs/
+*.user
+
+# Logs
+*.log

@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Win32" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="X1Toggle.vcxproj" Id="6e2f1b7a-4c39-4d58-9a21-b7c8d3e5f046" />
+</Solution>
