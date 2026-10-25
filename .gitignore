@@ -1,14 +1,12 @@
 # Build output
 x64/
 Win32/
-
-# Test build artifacts
-test/*.exe
-test/*.obj
-
-# Visual Studio user files
 .vs/
 *.user
+
+# Test build artifacts (any plugin subdirectory)
+*.exe
+*.obj
 
 # Logs
 *.log
