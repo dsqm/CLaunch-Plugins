@@ -16,6 +16,7 @@
 //==============================================================================
 #include "AppHotkeys.h"
 #include "resource.h"
+#include "version.h"
 #include <string>
 #include <strsafe.h>
 #pragma comment (lib, "shell32.lib")
@@ -26,6 +27,11 @@ using std::wstring;
 // Plugin title shown in the CLaunch plugin list
 //------------------------------------------------------------------------------
 #define PLUGIN_TITLE		_T("App Hotkeys")
+
+//------------------------------------------------------------------------------
+// Plugin description shown in the about dialog (PRQ_ABOUT)
+//------------------------------------------------------------------------------
+#define PLUGIN_DESCRIPTION	_T("CLaunch 窗口显示期间按自定义热键直接启动对应程序（最多 8 条映射，在设置页配置），无需切换到程序所在分类")
 
 //------------------------------------------------------------------------------
 // Number of configurable hotkey entries
@@ -555,6 +561,19 @@ UINT ClPluginEventHandler(UINT uEvent, LONG_PTR lpParam1, LONG_PTR lpParam2)
 		g_iPluginId = (int)lpParam1;										// Save new plugin ID
 		break;
 	  //------------------------------------------------------------------------
+	  // Request to show the plugin about dialog (version + description)
+	  //------------------------------------------------------------------------
+	  case PRQ_ABOUT:
+		{
+			TCHAR szMsg[512];
+			StringCchPrintf(szMsg, ARRAYSIZE(szMsg),
+									_T("版本 %s\n\n%s"),
+									PLUGIN_VERSION_T, PLUGIN_DESCRIPTION);
+			MessageBox((HWND)lpParam1, szMsg, PLUGIN_TITLE,
+									MB_OK | MB_ICONINFORMATION);
+		}
+		break;
+	  //------------------------------------------------------------------------
 	  // Request to show plugin settings dialog
 	  //------------------------------------------------------------------------
 	  case PRQ_SETTING:
@@ -580,7 +599,7 @@ UINT ClPluginEventHandler(UINT uEvent, LONG_PTR lpParam1, LONG_PTR lpParam2)
 		break;
 	  //------------------------------------------------------------------------
 	  // Unsupported requests / events
-	  // (This plugin registers no button item and has no about dialog)
+	  // (This plugin registers no button item)
 	  //------------------------------------------------------------------------
 	  default:
 		return FALSE;														// Failed / unsupported event

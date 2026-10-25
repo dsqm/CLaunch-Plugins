@@ -1,0 +1,102 @@
+name: auto-release
+
+# 15 天没有推送就自动发布 Release（多插件版）：
+#   - 触发条件：距最后一次推送 >= 15 天，且最后一次推送之后还没有发布过
+#     （对比最近一次 Release 的 published_at 与最后一次提交时间，避免同一
+#     静默期内重复发版）。
+#   - 版本号 = 发布日期（tag = vYYYY.MM.DD）。插件版本号由 build.bat 自动
+#     生成为「该插件最后一次提交的日期」（version.h，DLL 属性与「关于此
+#     插件」弹窗一致），说明里逐插件列出：本次更新了哪些（版本、提交
+#     列表）、哪些没更新（版本号即其上次更新日期）。
+#   - 每天 UTC 03:00 检查一次；workflow_dispatch 供手动触发测试。
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  maybe-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # 完整历史，供 plugin-notes.sh 统计各插件的更新状态
+
+      - name: Check 15-day quiet period
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          quiet=$(( (now - last) / 86400 ))
+          echo "days since last push: $quiet"
+          if [ "$quiet" -lt 15 ]; then
+            echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # 还没有正式 Release 时 releases/latest 返回 404（响应体是错误 JSON），
+          # 不能直接把它当时间戳；交给 jq 取字段，取不到就按「没发布过」处理。
+          resp=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" 2>/dev/null || true)
+          pub=$(echo "$resp" | jq -r '.published_at // empty' 2>/dev/null || true)
+          if [ -n "$pub" ]; then
+            pcts=$(date -d "$pub" +%s)
+            if [ "$pcts" -ge "$last" ]; then
+              echo "already released after last push -> skip"
+              echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      # 说明里的「更新时间」按北京时间展示
+      - name: Set timezone to China Standard Time
+        if: steps.decide.outputs.go == 'true'
+        shell: powershell
+        run: Set-TimeZone -Id "China Standard Time"
+
+      - name: Build
+        if: steps.decide.outputs.go == 'true'
+        shell: cmd
+        run: call build.bat
+
+      - name: Package
+        if: steps.decide.outputs.go == 'true'
+        shell: bash
+        run: |
+          powershell -NoProfile -Command "Compress-Archive -Path 'bin/Win32/*' -DestinationPath 'CLaunch-Plugins-Win32.zip' -Force"
+          powershell -NoProfile -Command "Compress-Archive -Path 'bin/x64/*' -DestinationPath 'CLaunch-Plugins-x64.zip' -Force"
+
+      - name: Create release
+        if: steps.decide.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          repo="$GITHUB_REPOSITORY"
+          ver=$(date +%Y.%m.%d)
+          tag="v$ver"
+          if gh release view "$tag" -R "$repo" >/dev/null 2>&1; then
+            echo "tag $tag already exists, skip"; exit 0
+          fi
+
+          # 上一个正式版的 tag 作为对比基线；一个都没有就从头统计
+          resp=$(gh api "repos/$repo/releases/latest" 2>/dev/null || true)
+          base=$(echo "$resp" | jq -r '.tag_name // empty' 2>/dev/null || true)
+          [ -z "$base" ] && base=ROOT
+
+          {
+            echo "自动发布：距上次推送已超过 15 天。发布日期：$ver"
+            echo ""
+            echo "全部代码：[\`v$ver\`](https://github.com/$repo/tree/$tag)"
+            echo ""
+            bash .github/scripts/plugin-notes.sh "$base"
+          } > notes.md
+
+          gh release create "$tag" \
+            "CLaunch-Plugins-Win32.zip" "CLaunch-Plugins-x64.zip" \
+            -R "$repo" \
+            --title "CLaunch Plugins v$ver" \
+            --notes-file notes.md

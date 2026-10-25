@@ -1,0 +1,75 @@
+@echo off
+rem ===== CLaunch-Plugins: shared MSVC toolchain setup =====
+rem ASCII only + CRLF only: cmd.exe reads .bat as ANSI and LF-only breaks parsing.
+rem Usage: call build_env.bat x86|x64
+rem vcvars64.bat is avoided on purpose; paths are set explicitly instead,
+rem discovered from the VS install (works for any version).
+set "CLP_ARCH=%~1"
+if not "%CLP_ARCH%"=="x86" if not "%CLP_ARCH%"=="x64" (
+    echo [ERROR] build_env.bat: pass x86 or x64
+    exit /b 1
+)
+
+set "PFX86=C:\Program Files (x86)"
+if not exist "%PFX86%" set "PFX86=%ProgramFiles%"
+
+set "VS="
+set "VSW=%PFX86%\Microsoft Visual Studio\Installer\vswhere.exe"
+if defined CLP_VSVER (
+    if exist "%VSW%" (
+        for /f "usebackq tokens=*" %%i in (`"%VSW%" -latest -products * -version "%CLP_VSVER%" -property installationPath`) do set "VS=%%i"
+    )
+)
+if not defined VS if exist "%VSW%" (
+    for /f "usebackq tokens=*" %%i in (`"%VSW%" -latest -products * -property installationPath`) do set "VS=%%i"
+)
+if not defined VS if exist "C:\VS2022\VC\Auxiliary\Build\vcvars64.bat" set "VS=C:\VS2022"
+if not defined VS goto no_vs
+
+set "MSVCDIR="
+pushd "%VS%\VC\Tools\MSVC"
+if errorlevel 1 goto no_msvc
+rem pick the highest version dir: dir /o-n is descending, first line wins
+for /f "delims=" %%d in ('dir /b /ad /o-n') do if not defined MSVCDIR set "MSVCDIR=%%d"
+popd
+if not defined MSVCDIR goto no_msvc
+set "MSVC=%VS%\VC\Tools\MSVC\%MSVCDIR%"
+
+set "SDK=%PFX86%\Windows Kits\10"
+set "SDKVER="
+pushd "%SDK%\Include"
+if errorlevel 1 goto no_sdk
+for /f "delims=" %%d in ('dir /b /ad /o-n') do if not defined SDKVER set "SDKVER=%%d"
+popd
+if not defined SDKVER goto no_sdk
+
+rem rc.exe (resource compiler) lives in the SDK bin, not in the MSVC dir.
+rem Compiler host is always x64; the target arch decides bin/lib flavors.
+if "%CLP_ARCH%"=="x64" (
+    set "CLP_HOSTBIN=Hostx64\x64"
+    set "CLP_LIBARCH=x64"
+) else (
+    set "CLP_HOSTBIN=Hostx64\x86"
+    set "CLP_LIBARCH=x86"
+)
+set "PATH=%MSVC%\bin\%CLP_HOSTBIN%;%SDK%\bin\%SDKVER%\%CLP_LIBARCH%;%PATH%"
+set "INCLUDE=%MSVC%\include;%SDK%\Include\%SDKVER%\ucrt;%SDK%\Include\%SDKVER%\um;%SDK%\Include\%SDKVER%\shared"
+set "LIB=%MSVC%\lib\%CLP_LIBARCH%;%SDK%\Lib\%SDKVER%\ucrt\%CLP_LIBARCH%;%SDK%\Lib\%SDKVER%\um\%CLP_LIBARCH%"
+
+echo [ENV] VS=%VS%
+echo [ENV] MSVC=%MSVCDIR%
+echo [ENV] SDK=%SDKVER%
+echo [ENV] ARCH=%CLP_ARCH%
+exit /b 0
+
+:no_vs
+echo [ERROR] Visual Studio not found
+exit /b 1
+
+:no_msvc
+echo [ERROR] MSVC toolset not found under %VS%
+exit /b 1
+
+:no_sdk
+echo [ERROR] Windows SDK not found under %SDK%
+exit /b 1

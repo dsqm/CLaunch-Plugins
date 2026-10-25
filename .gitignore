@@ -1,6 +1,7 @@
 # Build output
 x64/
 Win32/
+bin/
 .vs/
 *.user
 

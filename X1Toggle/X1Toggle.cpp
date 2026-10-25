@@ -16,12 +16,18 @@
 //
 //==============================================================================
 #include "X1Toggle.h"
+#include "version.h"
 #include <strsafe.h>
 
 //------------------------------------------------------------------------------
 // Plugin title shown in the CLaunch plugin list
 //------------------------------------------------------------------------------
 #define PLUGIN_TITLE		_T("XButton1 Toggle")
+
+//------------------------------------------------------------------------------
+// Plugin description shown in the about dialog (PRQ_ABOUT)
+//------------------------------------------------------------------------------
+#define PLUGIN_DESCRIPTION	_T("鼠标侧键 X1 关闭已显示的 CLaunch 窗口，与 CLaunch 自身的“X1 显示”动作配合成完整的显示/隐藏切换")
 
 //------------------------------------------------------------------------------
 // Global state
@@ -268,6 +274,19 @@ UINT ClPluginEventHandler(UINT uEvent, LONG_PTR lpParam1, LONG_PTR lpParam2)
 	  //------------------------------------------------------------------------
 	  case PRQ_IDCHANGE:
 		g_iPluginId = (int)lpParam1;											// Save new plugin ID
+		break;
+	  //------------------------------------------------------------------------
+	  // Request to show the plugin about dialog (version + description)
+	  //------------------------------------------------------------------------
+	  case PRQ_ABOUT:
+		{
+			TCHAR szMsg[512];
+			StringCchPrintf(szMsg, ARRAYSIZE(szMsg),
+									_T("版本 %s\n\n%s"),
+									PLUGIN_VERSION_T, PLUGIN_DESCRIPTION);
+			MessageBox((HWND)lpParam1, szMsg, PLUGIN_TITLE,
+									MB_OK | MB_ICONINFORMATION);
+		}
 		break;
 	 //=========================================================================
 	 // Event notifications from CLaunch
