@@ -49,7 +49,7 @@ HWINEVENTHOOK	g_hWinEventHook	= NULL;									// Foreground-change event hook
 // Diagnostic log (written next to the DLL as AutoCloseDialog.log)
 // * Off by default. Set ACD_DEBUG_LOG to 1 to enable it while debugging.
 //------------------------------------------------------------------------------
-#define ACD_DEBUG_LOG	1
+#define ACD_DEBUG_LOG	0
 
 #if ACD_DEBUG_LOG
 void ClDebugLog(LPCTSTR pszText)
@@ -64,17 +64,31 @@ void ClDebugLog(LPCTSTR pszText)
 	}
 	pszName[1] = _T('\0');													// Keep the directory part only
 	StringCchCat(szPath, ARRAYSIZE(szPath), _T("AutoCloseDialog.log"));
+	//--------------------------------------------------------------------------
+	// Write in UTF-8 (with BOM) so the log stays readable in any text editor
+	//--------------------------------------------------------------------------
+	WIN32_FILE_ATTRIBUTE_DATA fad;
+	BOOL bEmpty = !GetFileAttributesEx(szPath, GetFileExInfoStandard, &fad) ||
+						(fad.nFileSizeHigh == 0 && fad.nFileSizeLow == 0);
 	HANDLE hFile = CreateFile(szPath, FILE_APPEND_DATA,
 									FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
 									OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
 		return;
 	}
+	DWORD dwWritten = 0;
+	if (bEmpty) {
+		WriteFile(hFile, "\xef\xbb\xbf", 3, &dwWritten, NULL);				// UTF-8 BOM
+	}
 	TCHAR szLine[512];
 	StringCchPrintf(szLine, ARRAYSIZE(szLine), _T("[%8u] %s\r\n"),
 							GetTickCount(), pszText);
-	DWORD dwWritten = 0;
-	WriteFile(hFile, szLine, (DWORD)lstrlen(szLine) * sizeof(TCHAR), &dwWritten, NULL);
+	char szUtf8[2048];
+	int nLen = WideCharToMultiByte(CP_UTF8, 0, szLine, -1,
+											szUtf8, ARRAYSIZE(szUtf8), NULL, NULL);
+	if (nLen > 1) {
+		WriteFile(hFile, szUtf8, (DWORD)(nLen - 1), &dwWritten, NULL);		// Exclude the terminating NUL
+	}
 	CloseHandle(hFile);
 }
 #else

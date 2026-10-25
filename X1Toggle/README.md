@@ -63,5 +63,5 @@ msbuild X1Toggle.vcxproj /p:Configuration=Release /p:Platform=x64
 - 插件列表中显示的名称可在 `X1Toggle.cpp` 的 `PLUGIN_TITLE` 处修改
 - 想改用 X2 触发：把 `X1Toggle.cpp` 中的 `XBUTTON1` 改为 `XBUTTON2`（并把消息判断中的逻辑保持不变）重新编译即可
 - 该插件不注册按钮项、无设置界面，`PRQ_SETTING` 等请求按不支持处理（返回 FALSE）
-- **诊断日志**：默认关闭。排查问题时把 `X1Toggle.cpp` 开头的 `X1T_DEBUG_LOG` 改为 `1` 重新编译，会在 DLL 旁边生成 `X1Toggle.log`（记录初始化、钩子安装、事件与每次 X1 拦截）
+- **诊断日志**：默认关闭。排查问题时把 `X1Toggle.cpp` 开头的 `X1T_DEBUG_LOG` 改为 `1` 重新编译，会在 DLL 旁边生成 `X1Toggle.log`（记录初始化、钩子安装、事件与每次 X1 拦截）。日志为带 BOM 的 UTF-8 编码，任何文本编辑器可直接阅读
 - `test\smoketest.c` 是 DLL 加载/导出冒烟测试，`test\x1probe.c` 可模拟 X1 按键并统计 CLaunch 可见窗口数，用于无人工干预的端到端验证

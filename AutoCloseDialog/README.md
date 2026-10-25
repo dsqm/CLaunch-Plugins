@@ -48,4 +48,4 @@ msbuild AutoCloseDialog.vcxproj /p:Configuration=Release /p:Platform=x64
 
 ## 诊断日志
 
-默认关闭。把 `AutoCloseDialog.cpp` 开头的 `ACD_DEBUG_LOG` 改为 `1` 重新编译，会在 DLL 旁边生成 `AutoCloseDialog.log`（记录初始化与每次关闭的窗口标题/类名）。
+默认关闭。把 `AutoCloseDialog.cpp` 开头的 `ACD_DEBUG_LOG` 改为 `1` 重新编译，会在 DLL 旁边生成 `AutoCloseDialog.log`（记录初始化与每次关闭的窗口标题/类名）。日志为带 BOM 的 UTF-8 编码，任何文本编辑器可直接阅读。
