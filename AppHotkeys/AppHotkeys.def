@@ -1,0 +1,4 @@
+LIBRARY AppHotkeys
+
+EXPORTS
+	ClPluginEventHandler		@1

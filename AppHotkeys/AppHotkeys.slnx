@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Win32" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="AppHotkeys.vcxproj" Id="e9a73b4c-5d28-4f16-a47b-2c8e61d9f0b3" />
+</Solution>
