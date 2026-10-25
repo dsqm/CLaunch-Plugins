@@ -53,7 +53,7 @@ HWINEVENTHOOK	g_hWinEventHook	= NULL;									// Foreground-change event hook
 // Diagnostic log (written next to the DLL as AutoCloseDialog.log)
 // * Off by default. Set ACD_DEBUG_LOG to 1 to enable it while debugging.
 //------------------------------------------------------------------------------
-#define ACD_DEBUG_LOG	1
+#define ACD_DEBUG_LOG	0
 
 #if ACD_DEBUG_LOG
 void ClDebugLog(LPCTSTR pszText)
