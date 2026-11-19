@@ -75,10 +75,16 @@ jobs:
             echo "tag $tag already exists, skip"; exit 0
           fi
 
-          # 上一个正式版的 tag 作为对比基线；一个都没有就从头统计
+          # 上一个正式版的 tag 作为对比基线；没有正式版（或 tag 不在本地）时
+          # 退回到首个提交
           resp=$(gh api "repos/$repo/releases/latest" 2>/dev/null || true)
           base=$(echo "$resp" | jq -r '.tag_name // empty' 2>/dev/null || true)
-          [ -z "$base" ] && base=ROOT
+          if [ -z "$base" ] || ! git rev-parse -q --verify "$base^{commit}" >/dev/null; then
+            # ROOT 不是合法的 git 引用：`git log ROOT..HEAD` 会报 bad revision，
+            # 被 `|| true` 吞掉后每个插件都被判成「未更新」，首次发布的正式版
+            # 因此没有任何附件
+            base=$(git rev-list --max-parents=0 HEAD)
+          fi
 
           # 本次有更新的插件（按插件目录判断）；正式 Release 只附这些插件的压缩包
           plugins=$(for d in */; do
@@ -113,3 +119,18 @@ jobs:
             -R "$repo" \
             --title "CLaunch Plugins v$ver" \
             --notes-file notes.md
+
+          # gh 先建 Release 再传附件：上传失败时仍会留下一个只有源码的
+          # Release，且不易察觉。这里逐个核对压缩包是否真的挂上了，失败就让任务红。
+          names=$(gh release view "$tag" -R "$repo" --json assets --jq '.assets[].name')
+          missing=0
+          for f in dist/*.zip; do
+            name=$(basename "$f")
+            if ! printf '%s\n' "$names" | grep -qxF "$name"; then
+              echo "[ERROR] missing asset: $name" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
