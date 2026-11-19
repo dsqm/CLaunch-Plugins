@@ -10,9 +10,11 @@
 //			main window while a dialog is open), so the dialog is closed as
 //			soon as it loses the focus.
 //
-//			Windows whose title contains an options-dialog keyword (the
-//			CLaunch options dialog and its sub-dialogs) are never closed,
-//			so unsaved option edits are not discarded.
+//			Windows whose title contains a keep keyword are never closed:
+//			the CLaunch options dialog and its sub-dialogs (so unsaved
+//			option edits are not discarded), and the "Register Item" dialog
+//			(its "existing window" picker requires clicking another app,
+//			which would otherwise close the dialog mid-selection).
 //
 //==============================================================================
 #include "AutoCloseDialog.h"
@@ -33,8 +35,8 @@
 
 //------------------------------------------------------------------------------
 // Title keywords of the windows that must NOT be closed, nor the dialogs they
-// own (the CLaunch options dialog, the icon settings dialog, ...; matched
-// case-insensitively)
+// own (the CLaunch options dialog, the icon settings dialog, the register item
+// dialog, ...; matched case-insensitively)
 //------------------------------------------------------------------------------
 static const LPCTSTR s_pszKeepTitles[] = {
 	_T("选项"),															// zh-CN options
@@ -48,6 +50,17 @@ static const LPCTSTR s_pszKeepTitles[] = {
 	_T("图标设置"),														// zh-CN icon settings
 	_T("圖示"),															// zh-TW icon settings
 	_T("Icon"),															// en icon settings
+	//--------------------------------------------------------------------------
+	// Register item dialog ("existing window" picker: click another app)
+	//--------------------------------------------------------------------------
+	_T("注册项目"),														// zh-CN register item
+	_T("登錄項目"),														// zh-TW register item
+	_T("アイテムの登録"),													// ja register item
+	_T("Register Item"),												// en register item
+	_T("Registra elemento"),											// it register item
+	_T("Registrar elemento"),											// es register item
+	_T("버튼 등록"),														// ko register item
+	_T("Регистрация элемента"),											// ru register item
 };
 
 //------------------------------------------------------------------------------
@@ -186,7 +199,7 @@ static BOOL CALLBACK ClCloseDialogEnumProc(HWND hWnd, LPARAM lParam)
 			ClDebugLog(szMsg);
 		}
 #endif
-		return TRUE;														// Options / icon settings: keep it open
+		return TRUE;														// Options / icon settings / register item: keep it open
 	}
 #if ACD_DEBUG_LOG
 	{
